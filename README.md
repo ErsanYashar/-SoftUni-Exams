@@ -1,2 +1,2 @@
- SoftUni-Exams
+# SoftUni-Exams
  SoftUni-Exams 
