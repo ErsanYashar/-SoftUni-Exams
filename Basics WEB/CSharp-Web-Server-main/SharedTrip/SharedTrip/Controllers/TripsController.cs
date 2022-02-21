@@ -1,8 +1,9 @@
-﻿using BasicWebServer.Server.Attributes;
-using BasicWebServer.Server.Controllers;
-using BasicWebServer.Server.HTTP;
-using SharedTrip.Contracts;
-using SharedTrip.Models;
+﻿using MyWebServer.Controllers;
+using MyWebServer.Http;
+using SharedTrip.Data;
+using SharedTrip.Data.Models;
+using SharedTrip.Models.Trips;
+using SharedTrip.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,75 +12,130 @@ using System.Threading.Tasks;
 
 namespace SharedTrip.Controllers
 {
-    public class TripsController : Controller
+    public class TripsController: Controller
     {
-        private readonly ITripService tripService;
-        public TripsController(
-            Request request,
-            ITripService _tripService) 
-            : base(request)
+        private readonly ApplicationDbContext data;
+        private readonly IValidator validator;
+        private readonly ITripsService tripsService;
+
+        public TripsController(ApplicationDbContext data, IValidator validator,
+            ITripsService tripsService )
         {
-            tripService = _tripService;
+            this.data = data;
+            this.validator = validator;
+            this.tripsService = tripsService;
         }
 
+
+
         [Authorize]
-        public Response Add() => View();
+        public HttpResponse Add() => View();
+
 
         [HttpPost]
         [Authorize]
-        public Response Add(TripViewModel model)
+        public HttpResponse Add(TripCreateForm model) 
         {
-            var (isValid, errors) = tripService.ValidateModel(model);
+            //if (!this.data.Users.Any(r => r.Id == model.Id))
+            //{
+            //    return NotFound();
+            //}
 
-            if (!isValid)
+            var modelErrors = this.validator.ValidateTrips(model);
+
+            if (modelErrors.Any())
             {
-                return View(errors, "/Error");
+                return Error(modelErrors);
             }
 
-            try
+            var trip = new Trip
             {
-                tripService.AddTrip(model);
+                StartPoint = model.StartPoint,
+                EndPoint = model.EndPoint,
+                DepartureTime = model.DepartureTime,
+                ImagePath = model.CarImage,
+                Seats = model.Seats,
+                Description = model.Description,
+            };
+
+            this.data.Trips.Add(trip);
+            this.data.SaveChanges();
+
+            return Redirect("/Trips/All");
+        }
+
+
+        [Authorize]
+        public HttpResponse All()
+        {
+            var trip = data.Trips
+                .Select(t => new TipsAllForm
+                {
+                    Id = t.Id,
+                    StartPoint = t.StartPoint,
+                    EndPoint = t.EndPoint,
+                    DepartureTime = t.DepartureTime,
+                    Seats = t.Seats,
+                    Description=t.Description,
+                    
+                }).ToList();
+               
+
+            if (trip == null)
+            {
+                return BadRequest();
             }
-            catch (Exception)
+             return View(trip);
+
+        }
+
+        [Authorize]
+        public HttpResponse Details(string tripId)
+        {
+            var tripDet = this.data.Trips
+                .Where(x => x.Id == tripId)
+                .Select(t => new TripDetailModel
+                {
+                    StartPoint = t.StartPoint,
+                    EndPoint = t.EndPoint,
+                    DepartureTime = t.DepartureTime,
+                    Seats = t.Seats,
+                    Description = t.Description,
+                    Id = t.Id,
+                    ImagePath = t.ImagePath,    
+                })
+                .FirstOrDefault();
+
+            if (tripDet == null)
             {
-                return View(new List<ErrorViewModel>() { new ErrorViewModel("Unexpected Error") }, "/Error");
+                return BadRequest();
+            }
+
+
+            return View(tripDet);
+
+        }
+
+        //[Authorize]
+        //public HttpResponse AddUserToTrip(string id)
+        //{
+
+        //}
+
+        [Authorize]
+        public HttpResponse AddUserToTrip(string tripId)
+        {
+            try 
+            {
+                tripsService.AddUserToTrip(tripId, this.User.Id);
+            }
+            catch (Exception aex)
+            {
+                return Error(aex.Message);
             }
 
             return Redirect("/Trips/All");
         }
 
-        [Authorize]
-        public Response All()
-        {
-            IEnumerable<TripListViewModel> trips = tripService.GetAllTrips(); 
-
-            return View(trips);
-        }
-
-        [Authorize]
-        public Response Details(string tripId)
-        {
-            TripDetailsViewModel tripDetailsViewModel = tripService.GetTripDetails(tripId);
-
-            return View(tripDetailsViewModel);
-        }
-
-        public Response AddUserToTrip(string tripId)
-        {
-            try
-            {
-                tripService.AddUserToTrip(tripId, User.Id);
-            }
-            catch (ArgumentException aex)
-            {
-                return View(new List<ErrorViewModel>() { new ErrorViewModel(aex.Message) }, "/Error");
-            }
-            catch (Exception)
-            {
-                return View(new List<ErrorViewModel>() { new ErrorViewModel("Unexpected Error") }, "/Error");
-            }
-
-            return Redirect("/Trips/All");
-        }
     }
 }

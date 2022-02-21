@@ -1,24 +1,12 @@
-﻿using BasicWebServer.Server.Controllers;
-using BasicWebServer.Server.HTTP;
-
-namespace SharedTrip.Controllers
+﻿namespace SharedTrip.Controllers
 {
+    using MyWebServer.Controllers;
+    using MyWebServer.Http;
 
     public class HomeController : Controller
     {
-        public HomeController(Request request)
-            : base(request)
+        public HttpResponse Index()
         {
-
-        }
-
-        public Response Index()
-        {
-            if (User.IsAuthenticated)
-            {
-                return Redirect("/Trips/All");
-            }
-
             return this.View();
         }
     }

@@ -1,9 +1,10 @@
-﻿using BasicWebServer.Server.Attributes;
-using BasicWebServer.Server.Controllers;
-using BasicWebServer.Server.HTTP;
-using SharedTrip.Contracts;
+﻿using Git.Services;
+using MyWebServer.Controllers;
+using MyWebServer.Http;
+using SharedTrip.Data;
+using SharedTrip.Data.Models;
 using SharedTrip.Models;
-using SharedTrip.Models.Users;
+using SharedTrip.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,92 +13,88 @@ using System.Threading.Tasks;
 
 namespace SharedTrip.Controllers
 {
+    
     public class UsersController : Controller
     {
-        private readonly IUserService userService;
 
-        public UsersController(
-            Request request,
-            IUserService _userService) 
-            : base(request)
+        private readonly ApplicationDbContext data;
+        private readonly IValidator validator;
+        private readonly IPasswordHasher passwordHasher;
+
+        public UsersController(ApplicationDbContext data, IValidator validator, IPasswordHasher passwordHasher)
         {
-            userService = _userService;
+            this.data = data;
+            this.validator = validator;
+            this.passwordHasher = passwordHasher;
         }
 
-        public Response Login()
-        {
-            if (User.IsAuthenticated)
-            {
-                return Redirect("/Trips/All");
-            }
-
-            return View();
-        }
-               
-
-        public Response Register()
-        {
-            if (User.IsAuthenticated)
-            {
-                return Redirect("/Trips/All");
-            }
-
-            return View();
-        }
+        public HttpResponse Register() => View();
 
         [HttpPost]
-        public Response Register(RegisterViewModel model)
+        public HttpResponse Register(RegisterUserFormModel model)
         {
-            var (isValid, errors) = userService.ValidateModel(model);
-            
-            if (!isValid)
+            var modelErrors = this.validator.ValidateUser(model);
+
+            if (this.data.Users.Any(u => u.Username == model.Username))
             {
-                return View(errors, "/Error");
+                modelErrors.Add($"User with '{model.Username}' username already exists.");
             }
 
-            try
+            if (this.data.Users.Any(u => u.Email == model.Email))
             {
-                userService.RegisterUser(model);
+                modelErrors.Add($"User with '{model.Email}' e-mail already exists.");
             }
-            catch (ArgumentException aex)
+
+            if (modelErrors.Any())
             {
-                return View(new List<ErrorViewModel>() { new ErrorViewModel(aex.Message) }, "/Error");
+                return Error(modelErrors);
             }
-            catch (Exception)
+
+            var user = new User
             {
-                return View(new List<ErrorViewModel>() { new ErrorViewModel("Unexpected Error") }, "/Error");
-            }
+                Username = model.Username,
+                Password = this.passwordHasher.HashPassword(model.Password),
+                Email = model.Email
+            };
+
+            data.Users.Add(user);
+
+            data.SaveChanges();
 
             return Redirect("/Users/Login");
+
         }
+
+        public HttpResponse Login() => View();
 
         [HttpPost]
-        public Response Login(LoginViewModel model)
+        public HttpResponse Login(LoginUserFormModel model)
         {
-            Request.Session.Clear();
+            var hashedPassword = this.passwordHasher.HashPassword(model.Password);
 
-            (string userId, bool isCorrect) = userService.IsLoginCorrect(model);
+            var userId = this.data
+                .Users
+                .Where(u => u.Username == model.Username && u.Password == hashedPassword)
+                .Select(u => u.Id)
+                .FirstOrDefault();
 
-            if (isCorrect)
+            if (userId == null)
             {
-                SignIn(userId);
-
-                CookieCollection cookies = new CookieCollection();
-                cookies.Add(Session.SessionCookieName,
-                    Request.Session.Id);
-
-                return Redirect("/Trips/All");
+                return Error("Username and password combination is not valid.");
             }
 
-            return View(new List<ErrorViewModel>() { new ErrorViewModel("Login incorrect") }, "/Error");
+            this.SignIn(userId);
+
+            return Redirect("/Trips/All");
+
         }
 
-        [Authorize]
-        public Response Logout()
+        public HttpResponse Logout()
         {
-            SignOut();
+            this.SignOut();
 
             return Redirect("/");
         }
+
     }
 }

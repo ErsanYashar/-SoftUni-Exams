@@ -5,6 +5,10 @@
 
     public class ApplicationDbContext : DbContext
     {
+
+        public DbSet<User>  Users { get; set; }
+        public DbSet<Trip> Trips { get; set; }
+        public DbSet<UserTrip> userTrips { get; set; }
         public ApplicationDbContext()
         {
             
@@ -22,13 +26,7 @@
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<UserTrip>()
-                .HasKey(t => new { t.UserId, t.TripId });
+              .HasKey(t => new { t.UserId, t.TripId });
         }
-
-        public DbSet<User> Users { get; set; }
-
-        public DbSet<Trip> Trips { get; set; }
-
-        public DbSet<UserTrip> UserTrips { get; set; }
     }
 }

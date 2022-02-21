@@ -6,8 +6,6 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SharedTrip.Data;
 
-#nullable disable
-
 namespace SharedTrip.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
@@ -17,10 +15,9 @@ namespace SharedTrip.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "6.0.2")
-                .HasAnnotation("Relational:MaxIdentifierLength", 128);
-
-            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder, 1L, 1);
+                .HasAnnotation("Relational:MaxIdentifierLength", 128)
+                .HasAnnotation("ProductVersion", "5.0.7")
+                .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
             modelBuilder.Entity("SharedTrip.Data.Models.Trip", b =>
                 {
@@ -96,7 +93,7 @@ namespace SharedTrip.Migrations
 
                     b.HasIndex("TripId");
 
-                    b.ToTable("UserTrips");
+                    b.ToTable("userTrips");
                 });
 
             modelBuilder.Entity("SharedTrip.Data.Models.UserTrip", b =>

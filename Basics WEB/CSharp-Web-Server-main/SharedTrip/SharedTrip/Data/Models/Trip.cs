@@ -6,6 +6,7 @@ namespace SharedTrip.Data.Models
 {
     public class Trip
     {
+
         [Key]
         [StringLength(36)]
         public string Id { get; set; }
@@ -15,13 +16,13 @@ namespace SharedTrip.Data.Models
         public string StartPoint { get; set; }
 
         [Required]
-        [StringLength (100)]
+        [StringLength(100)]
         public string EndPoint { get; set; }
 
         [Required]
         public DateTime DepartureTime { get; set; }
 
-        [Range(2,6)]
+        [Range(2, 6)]
         public int Seats { get; set; }
 
         [Required]

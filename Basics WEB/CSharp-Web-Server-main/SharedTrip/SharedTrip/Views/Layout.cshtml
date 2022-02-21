@@ -15,7 +15,9 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarResponsive">
                 <ul class="navbar-nav ml-auto">
-                    <li class="nav-item active">
+                    @if(User == null)
+                    {
+                     <li class="nav-item active">
                         <a class="nav-link" href="/">Home</a>
                     </li>
                     <li class="nav-item">
@@ -24,6 +26,9 @@
                     <li class="nav-item">
                         <a class="nav-link" href="/Users/Register">Register</a>
                     </li>
+                    }
+                    @else
+                    {
                     <li class="nav-item">
                         <a class="nav-link" href="/Trips/All">Trips</a>
                     </li>
@@ -33,19 +38,21 @@
                     <li class="nav-item">
                         <a class="nav-link" href="/Users/Logout">Logout</a>
                     </li>
+                    }
+                    
                 </ul>
             </div>
         </div>
     </nav>
     <div class="top-border-line primary-separator"></div>
     <div class="container-fluid">
-        {{RenderBody}}
+        @RenderBody()
     </div>
     <div class="bottom-border-line primary-separator"></div>
     <div class="container">
         <footer id="sticky-footer" class="py-5 bg-dark">
             <div class="container">
-                <p class="m-0 text-center text-white">Copyright © Shared Trip 2022</p>
+                <p class="m-0 text-center text-white">Copyright © Shared Trip @DateTime.Now.Year</p>
             </div>
             <div></div>
         </footer>
